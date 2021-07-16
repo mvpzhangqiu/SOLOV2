@@ -15,6 +15,11 @@ from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
 from mmdet.utils import get_root_logger
 
+#-*- encoding:utf-8 -*-
+import sys   #reload()之前必须要引入模块
+import importlib
+importlib.reload(sys)
+# sys.setdefaultencoding('utf-8')
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
@@ -101,6 +106,9 @@ def main():
         cfg.model, train_cfg=cfg.train_cfg, test_cfg=cfg.test_cfg)
 
     datasets = [build_dataset(cfg.data.train)]
+
+    print(cfg.data.train)
+    
     if len(cfg.workflow) == 2:
         datasets.append(build_dataset(cfg.data.val))
     if cfg.checkpoint_config is not None:

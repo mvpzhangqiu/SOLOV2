@@ -19,7 +19,7 @@ import numpy as np
 import pycocotools.mask as mask_util
 
 
-def get_masks(result, num_classes=80):
+def get_masks(result, num_classes=2):
     for cur_result in result:
         masks = [[] for _ in range(num_classes)]
         if cur_result is None:

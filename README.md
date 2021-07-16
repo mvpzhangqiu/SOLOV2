@@ -99,6 +99,9 @@ Once the installation is done, you can download the provided models and use [inf
     Example: 
     python tools/test_ins.py configs/solo/solo_r50_fpn_8gpu_1x.py  SOLO_R50_1x.pth --show --out  results_solo.pkl --eval segm
 
+    python tools/test_ins_vis.py configs/solov2/solov2_light_448_r18_fpn_8gpu_3x.py  work_dirs/solov2_light_448_r18_fpn_8gpu_3x/latest.pth --show --save_dir  work_dirs/vis_solo11
+
+
 
 ### Visualization
 
