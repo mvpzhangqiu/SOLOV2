@@ -137,3 +137,30 @@ Please consider citing our papers in your publications if the project helps your
 ## License
 
 For academic use, this project is licensed under the 2-clause BSD License - see the LICENSE file for details. For commercial use, please contact [Xinlong Wang](https://www.xloong.wang/) and  [Chunhua Shen](https://cs.adelaide.edu.au/~chhshen/).
+
+
+## 补充
+
+### 训练前的数据格式转换问题
+    # 合并
+    调用data/tools/common.py脚本将不同批次数据的json文件合并成一个json文件
+
+    # 转换
+    进入data/tools/VIA/目录，调用main.py程序将json文件转换成coco格式
+
+    Example: 
+    python main.py via /home/zq/work/SOLO/data/road/train ./tutorial/jsons/merge_train_json.json ./tutorial/configs/config.yaml
+
+### 模型评测
+    # 标注（gt）mask的生成
+    调用data/tools/img_process.py脚本中的gt_mask_generate函数将测试集的标注转为mask
+
+    # 预测（pred）mask的生成
+    已集成到模型的预测函数中，以png格式和预测可视化图片保存在同一个文件夹中
+
+    # 分割模型性能指标miou的计算
+    调用data/tools/miou.py脚本计算gt与pred的miou
+
+    Example: 
+    python miou.py /home/zq/work/SOLO/data/road/val-mask/ ../vis_solov2_r50/
+
