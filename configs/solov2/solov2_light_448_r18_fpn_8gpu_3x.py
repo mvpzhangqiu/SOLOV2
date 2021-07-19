@@ -106,7 +106,9 @@ data = dict(
     test=dict(
         type=dataset_type,
         ann_file=data_root + 'annotation/merge/merge_val_coco.json',
+        # ann_file=data_root + 'annotation/merge/merge_val_coco-test.json',
         img_prefix=data_root + 'road/val/',
+        # img_prefix=data_root + 'road/val-test/',
         pipeline=test_pipeline))
 # optimizer
 optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)

@@ -56,10 +56,12 @@ def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir):
         cate_score = cate_score[orders]
 
         seg_show = img_show.copy()
+        mask = np.zeros((h, w))
         for idx in range(num_mask):
             idx = -(idx+1)
             cur_mask = seg_label[idx, :,:]
             cur_mask = mmcv.imresize(cur_mask, (w, h))
+            # 预测的置信度设置
             cur_mask = (cur_mask > 0.5).astype(np.uint8)
             if cur_mask.sum() == 0:
                continue
@@ -67,9 +69,12 @@ def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir):
                 0, 256, (1, 3), dtype=np.uint8)
             cur_mask_bool = cur_mask.astype(np.bool)
             seg_show[cur_mask_bool] = img_show[cur_mask_bool] * 0.5 + color_mask * 0.5
+            mask += cur_mask
 
             cur_cate = cate_label[idx]
+            print("cur_cate is : {}".format(cur_cate))
             cur_score = cate_score[idx]
+            print("cur_score is : {}".format(cur_score))
 
             label_text = class_names[cur_cate]
             #label_text += '|{:.02f}'.format(cur_score)
@@ -78,7 +83,11 @@ def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir):
             vis_pos = (max(int(center_x) - 10, 0), int(center_y))
             cv2.putText(seg_show, label_text, vis_pos,
                         cv2.FONT_HERSHEY_COMPLEX, 0.3, (255, 255, 255))  # green
+        seg_show = cv2.resize(seg_show, (1920, 1080))
+        # print(seg_show.shape)
         mmcv.imwrite(seg_show, '{}/{}.jpg'.format(save_dir, data_id))
+        mask = cv2.resize(mask, (1920, 1080))
+        mmcv.imwrite(mask, '{}/{}.png'.format(save_dir, data_id))
 
 
 def single_gpu_test(model, data_loader, args, cfg=None, verbose=True):

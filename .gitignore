@@ -119,3 +119,9 @@ work_dirs/
 
 # Pytorch
 *.pth
+
+# img
+data/annotation/
+data/bak/
+data/road/
+work_dirs/

@@ -75,8 +75,8 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        # img_scale=(1333, 800),
-        img_scale=(640, 320),
+        img_scale=(1333, 800),
+        # img_scale=(640, 320),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -137,8 +137,8 @@ total_epochs = 50
 device_ids = range(8)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-# work_dir = './work_dirs/solov2_release_r50_fpn_8gpu_1x'
-work_dir = './work_dirs/solov2_release_r50_fpn_8gpu_1x_640_320_scale'
+work_dir = './work_dirs/solov2_release_r50_fpn_8gpu_1x'
+# work_dir = './work_dirs/solov2_release_r50_fpn_8gpu_1x_640_320_scale'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]
