@@ -37,7 +37,7 @@ def load_json(filenamejson):
 
 #统计图片数量
 # 读取json文件，将标注图片移动到已标注图片文件夹，删除没有目标的标注信息
-def main(imgsrc_dir, imgdes_img, jsonsrc_dir,jsondes_dir, merge_flag, merge_json):
+def main(imgsrc_dir, imgdes_img, jsonsrc_dir,jsondes_dir, seg_flag, merge_flag, merge_json):
     json_paths = getAllPath(jsonsrc_dir, '.json')
     for json_path in json_paths:
         # 读取 json 文件数据
@@ -50,13 +50,19 @@ def main(imgsrc_dir, imgdes_img, jsonsrc_dir,jsondes_dir, merge_flag, merge_json
             filename = content[t]['filename']
             regions =  content[t]['regions']
             if(len(regions)==0):
-                print (filename+':no regions')
+                # print (filename+':no regions')
                 continue
-            else:
-                print (filename+':*****')
-                print (len(regions))
-                new_dict.update({t:content[t]})
-                shutil.copy(imgsrc_dir+filename,imgdes_img+filename)
+            if(seg_flag):
+                for region in regions:
+                    if region['shape_attributes']['name'] != "polygon":
+                        print(region['shape_attributes']['name'])
+                        regions.remove(region)
+                if(len(regions)==0):
+                    continue
+            print (filename+':*****')
+            print (len(regions))
+            new_dict.update({t:content[t]})
+            shutil.copy(imgsrc_dir+filename,imgdes_img+filename)
                 
         with open(jsondes_dir + os.path.basename(json_path), "w") as f:
             json.dump(new_dict, f)
@@ -80,22 +86,23 @@ if __name__ == '__main__':
         dir ='../PZ_image'
         rename(dir, 'pz','.jpg')
     else:
-        imgsrc_dir ='/home/yly/work/dataset/CNL_imgs/'
-        imgdes_img ='/home/zq/work/SOLO/data/road/val/'
-        jsonsrc_dir ='/home/zq/work/SOLO/data/annotation/val/'
-        jsondes_dir ='/home/zq/work/SOLO/data/annotation/merge/val/'
-        merge_json = '/home/zq/work/SOLO/data/annotation/merge/merge_val_json.json'
-        merge_flag = True
-
         # imgsrc_dir ='/home/yly/work/dataset/CNL_imgs/'
-        # imgdes_img ='/home/zq/work/SOLO/data/road/train/'
-        # jsonsrc_dir ='/home/zq/work/SOLO/data/annotation/train/'
-        # jsondes_dir ='/home/zq/work/SOLO/data/annotation/merge/train/'
-        # merge_json = '/home/zq/work/SOLO/data/annotation/merge/merge_train_json.json'
+        # imgdes_img ='/home/zq/work/SOLO/data/road/val/'
+        # jsonsrc_dir ='/home/zq/work/SOLO/data/annotation/val/'
+        # jsondes_dir ='/home/zq/work/SOLO/data/annotation/merge/val/'
+        # merge_json = '/home/zq/work/SOLO/data/annotation/merge/merge_val_json.json'
         # merge_flag = True
+
+        imgsrc_dir ='/home/yly/work/dataset/CNL_imgs/'
+        imgdes_img ='/home/zq/work/SOLO/data/road/train/'
+        jsonsrc_dir ='/home/zq/work/SOLO/data/annotation/train/'
+        jsondes_dir ='/home/zq/work/SOLO/data/annotation/merge/train/'
+        merge_json = '/home/zq/work/SOLO/data/annotation/merge/merge_train_json.json'
+        seg_flag = True
+        merge_flag = True
 
         if not os.path.exists(imgdes_img):
             os.makedirs(imgdes_img)
         if not os.path.exists(jsondes_dir):
             os.makedirs(jsondes_dir)
-        main(imgsrc_dir,imgdes_img,jsonsrc_dir,jsondes_dir,merge_flag,merge_json)
+        main(imgsrc_dir,imgdes_img,jsonsrc_dir,jsondes_dir,seg_flag, merge_flag,merge_json)

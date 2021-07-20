@@ -1,0 +1,169 @@
+2021-07-20 03:09:22,302 - mmdet - INFO - Distributed training: False
+2021-07-20 03:09:22,302 - mmdet - INFO - MMDetection Version: 1.0.0+c7b294a
+2021-07-20 03:09:22,302 - mmdet - INFO - Config:
+# model settings
+model = dict(
+    type='SOLOv2',
+    pretrained='torchvision://resnet50',
+    backbone=dict(
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3), # C2, C3, C4, C5
+        frozen_stages=1,
+        style='pytorch'),
+    neck=dict(
+        type='FPN',
+        in_channels=[256, 512, 1024, 2048],
+        out_channels=256,
+        start_level=0,
+        num_outs=5),
+    bbox_head=dict(
+        type='SOLOv2Head',
+        num_classes=2,
+        in_channels=256,
+        stacked_convs=4,
+        seg_feat_channels=512,
+        strides=[8, 8, 16, 32, 32],
+        scale_ranges=((1, 96), (48, 192), (96, 384), (192, 768), (384, 2048)),
+        sigma=0.2,
+        num_grids=[40, 36, 24, 16, 12],
+        ins_out_channels=256,
+        loss_ins=dict(
+            type='DiceLoss',
+            use_sigmoid=True,
+            loss_weight=3.0),
+        loss_cate=dict(
+            type='FocalLoss',
+            use_sigmoid=True,
+            gamma=2.0,
+            alpha=0.25,
+            loss_weight=1.0)),
+    mask_feat_head=dict(
+            type='MaskFeatHead',
+            in_channels=256,
+            out_channels=128,
+            start_level=0,
+            end_level=3,
+            num_classes=256,
+            norm_cfg=dict(type='GN', num_groups=32, requires_grad=True)),
+    )
+# training and testing settings
+train_cfg = dict()
+test_cfg = dict(
+    nms_pre=500,
+    score_thr=0.1,
+    mask_thr=0.5,
+    update_thr=0.05,
+    kernel='gaussian',  # gaussian/linear
+    sigma=2.0,
+    max_per_img=100)
+# dataset settings
+dataset_type = 'CocoDataset'
+data_root = 'data/'
+img_norm_cfg = dict(
+    mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
+train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+    # dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
+    dict(type='Resize', img_scale=(640, 320), keep_ratio=True),
+    dict(type='RandomFlip', flip_ratio=0.5),
+    dict(type='Normalize', **img_norm_cfg),
+    dict(type='Pad', size_divisor=32),
+    dict(type='DefaultFormatBundle'),
+    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks']),
+]
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(
+        type='MultiScaleFlipAug',
+        img_scale=(1333, 800),
+        # img_scale=(640, 320),
+        flip=False,
+        transforms=[
+            dict(type='Resize', keep_ratio=True),
+            dict(type='RandomFlip'),
+            dict(type='Normalize', **img_norm_cfg),
+            dict(type='Pad', size_divisor=32),
+            dict(type='ImageToTensor', keys=['img']),
+            dict(type='Collect', keys=['img']),
+        ])
+]
+data = dict(
+    imgs_per_gpu=2,
+    workers_per_gpu=2,
+    train=dict(
+        type=dataset_type,
+        ann_file=data_root + 'annotation/merge/merge_train_coco.json',
+        img_prefix=data_root + 'road/train/',
+        # ann_file=data_root + 'bak/road/annotations/after_merge/train/merge.json',
+        # img_prefix=data_root + 'bak/road/train/',
+        pipeline=train_pipeline),
+    val=dict(
+        type=dataset_type,
+        ann_file=data_root + 'annotation/merge/merge_val_coco.json',
+        img_prefix=data_root + 'road/val/',
+        # ann_file=data_root + 'bak/road/annotations/after_merge/train/merge.json',
+        # img_prefix=data_root + 'bak/road/train/',
+        pipeline=test_pipeline),
+    test=dict(
+        type=dataset_type,
+        ann_file=data_root + 'annotation/merge/merge_val_coco.json',
+        img_prefix=data_root + 'road/val/',
+        # ann_file=data_root + 'annotation/merge/merge_train_coco.json',
+        # img_prefix=data_root + 'road/train/',
+        # ann_file=data_root + 'bak/road/annotations/after_merge/train/merge.json',
+        # img_prefix=data_root + 'bak/road/train/',
+        pipeline=test_pipeline))
+# optimizer
+optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
+optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
+# learning policy
+lr_config = dict(
+    policy='step',
+    warmup='linear',
+    warmup_iters=500,
+    warmup_ratio=0.01,
+    step=[9, 11])
+checkpoint_config = dict(interval=1)
+# yapf:disable
+log_config = dict(
+    interval=50,
+    hooks=[
+        dict(type='TextLoggerHook'),
+        # dict(type='TensorboardLoggerHook')
+    ])
+# yapf:enable
+# runtime settings
+total_epochs = 50
+device_ids = range(8)
+dist_params = dict(backend='nccl')
+log_level = 'INFO'
+# work_dir = './work_dirs/solov2_release_r50_fpn_8gpu_1x'
+work_dir = './work_dirs/solov2_release_r50_fpn_8gpu_1x_0720'
+# work_dir = './work_dirs/solov2_release_r50_fpn_8gpu_1x_640_320_scale'
+load_from = None
+resume_from = None
+workflow = [('train', 1)]
+
+2021-07-20 03:09:22,709 - mmdet - INFO - load model from: torchvision://resnet50
+2021-07-20 03:09:26,282 - mmdet - WARNING - The model and loaded state dict do not match exactly
+
+unexpected key in source state_dict: backbone.conv1.weight, backbone.bn1.weight, backbone.bn1.bias, backbone.bn1.running_mean, backbone.bn1.running_var, backbone.bn1.num_batches_tracked, backbone.layer1.0.conv1.weight, backbone.layer1.0.bn1.weight, backbone.layer1.0.bn1.bias, backbone.layer1.0.bn1.running_mean, backbone.layer1.0.bn1.running_var, backbone.layer1.0.bn1.num_batches_tracked, backbone.layer1.0.conv2.weight, backbone.layer1.0.bn2.weight, backbone.layer1.0.bn2.bias, backbone.layer1.0.bn2.running_mean, backbone.layer1.0.bn2.running_var, backbone.layer1.0.bn2.num_batches_tracked, backbone.layer1.0.conv3.weight, backbone.layer1.0.bn3.weight, backbone.layer1.0.bn3.bias, backbone.layer1.0.bn3.running_mean, backbone.layer1.0.bn3.running_var, backbone.layer1.0.bn3.num_batches_tracked, backbone.layer1.0.downsample.0.weight, backbone.layer1.0.downsample.1.weight, backbone.layer1.0.downsample.1.bias, backbone.layer1.0.downsample.1.running_mean, backbone.layer1.0.downsample.1.running_var, backbone.layer1.0.downsample.1.num_batches_tracked, backbone.layer1.1.conv1.weight, backbone.layer1.1.bn1.weight, backbone.layer1.1.bn1.bias, backbone.layer1.1.bn1.running_mean, backbone.layer1.1.bn1.running_var, backbone.layer1.1.bn1.num_batches_tracked, backbone.layer1.1.conv2.weight, backbone.layer1.1.bn2.weight, backbone.layer1.1.bn2.bias, backbone.layer1.1.bn2.running_mean, backbone.layer1.1.bn2.running_var, backbone.layer1.1.bn2.num_batches_tracked, backbone.layer1.1.conv3.weight, backbone.layer1.1.bn3.weight, backbone.layer1.1.bn3.bias, backbone.layer1.1.bn3.running_mean, backbone.layer1.1.bn3.running_var, backbone.layer1.1.bn3.num_batches_tracked, backbone.layer1.2.conv1.weight, backbone.layer1.2.bn1.weight, backbone.layer1.2.bn1.bias, backbone.layer1.2.bn1.running_mean, backbone.layer1.2.bn1.running_var, backbone.layer1.2.bn1.num_batches_tracked, backbone.layer1.2.conv2.weight, backbone.layer1.2.bn2.weight, backbone.layer1.2.bn2.bias, backbone.layer1.2.bn2.running_mean, backbone.layer1.2.bn2.running_var, backbone.layer1.2.bn2.num_batches_tracked, backbone.layer1.2.conv3.weight, backbone.layer1.2.bn3.weight, backbone.layer1.2.bn3.bias, backbone.layer1.2.bn3.running_mean, backbone.layer1.2.bn3.running_var, backbone.layer1.2.bn3.num_batches_tracked, backbone.layer2.0.conv1.weight, backbone.layer2.0.bn1.weight, backbone.layer2.0.bn1.bias, backbone.layer2.0.bn1.running_mean, backbone.layer2.0.bn1.running_var, backbone.layer2.0.bn1.num_batches_tracked, backbone.layer2.0.conv2.weight, backbone.layer2.0.bn2.weight, backbone.layer2.0.bn2.bias, backbone.layer2.0.bn2.running_mean, backbone.layer2.0.bn2.running_var, backbone.layer2.0.bn2.num_batches_tracked, backbone.layer2.0.conv3.weight, backbone.layer2.0.bn3.weight, backbone.layer2.0.bn3.bias, backbone.layer2.0.bn3.running_mean, backbone.layer2.0.bn3.running_var, backbone.layer2.0.bn3.num_batches_tracked, backbone.layer2.0.downsample.0.weight, backbone.layer2.0.downsample.1.weight, backbone.layer2.0.downsample.1.bias, backbone.layer2.0.downsample.1.running_mean, backbone.layer2.0.downsample.1.running_var, backbone.layer2.0.downsample.1.num_batches_tracked, backbone.layer2.1.conv1.weight, backbone.layer2.1.bn1.weight, backbone.layer2.1.bn1.bias, backbone.layer2.1.bn1.running_mean, backbone.layer2.1.bn1.running_var, backbone.layer2.1.bn1.num_batches_tracked, backbone.layer2.1.conv2.weight, backbone.layer2.1.bn2.weight, backbone.layer2.1.bn2.bias, backbone.layer2.1.bn2.running_mean, backbone.layer2.1.bn2.running_var, backbone.layer2.1.bn2.num_batches_tracked, backbone.layer2.1.conv3.weight, backbone.layer2.1.bn3.weight, backbone.layer2.1.bn3.bias, backbone.layer2.1.bn3.running_mean, backbone.layer2.1.bn3.running_var, backbone.layer2.1.bn3.num_batches_tracked, backbone.layer2.2.conv1.weight, backbone.layer2.2.bn1.weight, backbone.layer2.2.bn1.bias, backbone.layer2.2.bn1.running_mean, backbone.layer2.2.bn1.running_var, backbone.layer2.2.bn1.num_batches_tracked, backbone.layer2.2.conv2.weight, backbone.layer2.2.bn2.weight, backbone.layer2.2.bn2.bias, backbone.layer2.2.bn2.running_mean, backbone.layer2.2.bn2.running_var, backbone.layer2.2.bn2.num_batches_tracked, backbone.layer2.2.conv3.weight, backbone.layer2.2.bn3.weight, backbone.layer2.2.bn3.bias, backbone.layer2.2.bn3.running_mean, backbone.layer2.2.bn3.running_var, backbone.layer2.2.bn3.num_batches_tracked, backbone.layer2.3.conv1.weight, backbone.layer2.3.bn1.weight, backbone.layer2.3.bn1.bias, backbone.layer2.3.bn1.running_mean, backbone.layer2.3.bn1.running_var, backbone.layer2.3.bn1.num_batches_tracked, backbone.layer2.3.conv2.weight, backbone.layer2.3.bn2.weight, backbone.layer2.3.bn2.bias, backbone.layer2.3.bn2.running_mean, backbone.layer2.3.bn2.running_var, backbone.layer2.3.bn2.num_batches_tracked, backbone.layer2.3.conv3.weight, backbone.layer2.3.bn3.weight, backbone.layer2.3.bn3.bias, backbone.layer2.3.bn3.running_mean, backbone.layer2.3.bn3.running_var, backbone.layer2.3.bn3.num_batches_tracked, backbone.layer3.0.conv1.weight, backbone.layer3.0.bn1.weight, backbone.layer3.0.bn1.bias, backbone.layer3.0.bn1.running_mean, backbone.layer3.0.bn1.running_var, backbone.layer3.0.bn1.num_batches_tracked, backbone.layer3.0.conv2.weight, backbone.layer3.0.bn2.weight, backbone.layer3.0.bn2.bias, backbone.layer3.0.bn2.running_mean, backbone.layer3.0.bn2.running_var, backbone.layer3.0.bn2.num_batches_tracked, backbone.layer3.0.conv3.weight, backbone.layer3.0.bn3.weight, backbone.layer3.0.bn3.bias, backbone.layer3.0.bn3.running_mean, backbone.layer3.0.bn3.running_var, backbone.layer3.0.bn3.num_batches_tracked, backbone.layer3.0.downsample.0.weight, backbone.layer3.0.downsample.1.weight, backbone.layer3.0.downsample.1.bias, backbone.layer3.0.downsample.1.running_mean, backbone.layer3.0.downsample.1.running_var, backbone.layer3.0.downsample.1.num_batches_tracked, backbone.layer3.1.conv1.weight, backbone.layer3.1.bn1.weight, backbone.layer3.1.bn1.bias, backbone.layer3.1.bn1.running_mean, backbone.layer3.1.bn1.running_var, backbone.layer3.1.bn1.num_batches_tracked, backbone.layer3.1.conv2.weight, backbone.layer3.1.bn2.weight, backbone.layer3.1.bn2.bias, backbone.layer3.1.bn2.running_mean, backbone.layer3.1.bn2.running_var, backbone.layer3.1.bn2.num_batches_tracked, backbone.layer3.1.conv3.weight, backbone.layer3.1.bn3.weight, backbone.layer3.1.bn3.bias, backbone.layer3.1.bn3.running_mean, backbone.layer3.1.bn3.running_var, backbone.layer3.1.bn3.num_batches_tracked, backbone.layer3.2.conv1.weight, backbone.layer3.2.bn1.weight, backbone.layer3.2.bn1.bias, backbone.layer3.2.bn1.running_mean, backbone.layer3.2.bn1.running_var, backbone.layer3.2.bn1.num_batches_tracked, backbone.layer3.2.conv2.weight, backbone.layer3.2.bn2.weight, backbone.layer3.2.bn2.bias, backbone.layer3.2.bn2.running_mean, backbone.layer3.2.bn2.running_var, backbone.layer3.2.bn2.num_batches_tracked, backbone.layer3.2.conv3.weight, backbone.layer3.2.bn3.weight, backbone.layer3.2.bn3.bias, backbone.layer3.2.bn3.running_mean, backbone.layer3.2.bn3.running_var, backbone.layer3.2.bn3.num_batches_tracked, backbone.layer3.3.conv1.weight, backbone.layer3.3.bn1.weight, backbone.layer3.3.bn1.bias, backbone.layer3.3.bn1.running_mean, backbone.layer3.3.bn1.running_var, backbone.layer3.3.bn1.num_batches_tracked, backbone.layer3.3.conv2.weight, backbone.layer3.3.bn2.weight, backbone.layer3.3.bn2.bias, backbone.layer3.3.bn2.running_mean, backbone.layer3.3.bn2.running_var, backbone.layer3.3.bn2.num_batches_tracked, backbone.layer3.3.conv3.weight, backbone.layer3.3.bn3.weight, backbone.layer3.3.bn3.bias, backbone.layer3.3.bn3.running_mean, backbone.layer3.3.bn3.running_var, backbone.layer3.3.bn3.num_batches_tracked, backbone.layer3.4.conv1.weight, backbone.layer3.4.bn1.weight, backbone.layer3.4.bn1.bias, backbone.layer3.4.bn1.running_mean, backbone.layer3.4.bn1.running_var, backbone.layer3.4.bn1.num_batches_tracked, backbone.layer3.4.conv2.weight, backbone.layer3.4.bn2.weight, backbone.layer3.4.bn2.bias, backbone.layer3.4.bn2.running_mean, backbone.layer3.4.bn2.running_var, backbone.layer3.4.bn2.num_batches_tracked, backbone.layer3.4.conv3.weight, backbone.layer3.4.bn3.weight, backbone.layer3.4.bn3.bias, backbone.layer3.4.bn3.running_mean, backbone.layer3.4.bn3.running_var, backbone.layer3.4.bn3.num_batches_tracked, backbone.layer3.5.conv1.weight, backbone.layer3.5.bn1.weight, backbone.layer3.5.bn1.bias, backbone.layer3.5.bn1.running_mean, backbone.layer3.5.bn1.running_var, backbone.layer3.5.bn1.num_batches_tracked, backbone.layer3.5.conv2.weight, backbone.layer3.5.bn2.weight, backbone.layer3.5.bn2.bias, backbone.layer3.5.bn2.running_mean, backbone.layer3.5.bn2.running_var, backbone.layer3.5.bn2.num_batches_tracked, backbone.layer3.5.conv3.weight, backbone.layer3.5.bn3.weight, backbone.layer3.5.bn3.bias, backbone.layer3.5.bn3.running_mean, backbone.layer3.5.bn3.running_var, backbone.layer3.5.bn3.num_batches_tracked, backbone.layer4.0.conv1.weight, backbone.layer4.0.bn1.weight, backbone.layer4.0.bn1.bias, backbone.layer4.0.bn1.running_mean, backbone.layer4.0.bn1.running_var, backbone.layer4.0.bn1.num_batches_tracked, backbone.layer4.0.conv2.weight, backbone.layer4.0.bn2.weight, backbone.layer4.0.bn2.bias, backbone.layer4.0.bn2.running_mean, backbone.layer4.0.bn2.running_var, backbone.layer4.0.bn2.num_batches_tracked, backbone.layer4.0.conv3.weight, backbone.layer4.0.bn3.weight, backbone.layer4.0.bn3.bias, backbone.layer4.0.bn3.running_mean, backbone.layer4.0.bn3.running_var, backbone.layer4.0.bn3.num_batches_tracked, backbone.layer4.0.downsample.0.weight, backbone.layer4.0.downsample.1.weight, backbone.layer4.0.downsample.1.bias, backbone.layer4.0.downsample.1.running_mean, backbone.layer4.0.downsample.1.running_var, backbone.layer4.0.downsample.1.num_batches_tracked, backbone.layer4.1.conv1.weight, backbone.layer4.1.bn1.weight, backbone.layer4.1.bn1.bias, backbone.layer4.1.bn1.running_mean, backbone.layer4.1.bn1.running_var, backbone.layer4.1.bn1.num_batches_tracked, backbone.layer4.1.conv2.weight, backbone.layer4.1.bn2.weight, backbone.layer4.1.bn2.bias, backbone.layer4.1.bn2.running_mean, backbone.layer4.1.bn2.running_var, backbone.layer4.1.bn2.num_batches_tracked, backbone.layer4.1.conv3.weight, backbone.layer4.1.bn3.weight, backbone.layer4.1.bn3.bias, backbone.layer4.1.bn3.running_mean, backbone.layer4.1.bn3.running_var, backbone.layer4.1.bn3.num_batches_tracked, backbone.layer4.2.conv1.weight, backbone.layer4.2.bn1.weight, backbone.layer4.2.bn1.bias, backbone.layer4.2.bn1.running_mean, backbone.layer4.2.bn1.running_var, backbone.layer4.2.bn1.num_batches_tracked, backbone.layer4.2.conv2.weight, backbone.layer4.2.bn2.weight, backbone.layer4.2.bn2.bias, backbone.layer4.2.bn2.running_mean, backbone.layer4.2.bn2.running_var, backbone.layer4.2.bn2.num_batches_tracked, backbone.layer4.2.conv3.weight, backbone.layer4.2.bn3.weight, backbone.layer4.2.bn3.bias, backbone.layer4.2.bn3.running_mean, backbone.layer4.2.bn3.running_var, backbone.layer4.2.bn3.num_batches_tracked, neck.lateral_convs.0.conv.weight, neck.lateral_convs.0.conv.bias, neck.lateral_convs.1.conv.weight, neck.lateral_convs.1.conv.bias, neck.lateral_convs.2.conv.weight, neck.lateral_convs.2.conv.bias, neck.lateral_convs.3.conv.weight, neck.lateral_convs.3.conv.bias, neck.fpn_convs.0.conv.weight, neck.fpn_convs.0.conv.bias, neck.fpn_convs.1.conv.weight, neck.fpn_convs.1.conv.bias, neck.fpn_convs.2.conv.weight, neck.fpn_convs.2.conv.bias, neck.fpn_convs.3.conv.weight, neck.fpn_convs.3.conv.bias, mask_feat_head.convs_all_levels.0.conv0.conv.weight, mask_feat_head.convs_all_levels.0.conv0.gn.weight, mask_feat_head.convs_all_levels.0.conv0.gn.bias, mask_feat_head.convs_all_levels.1.conv0.conv.weight, mask_feat_head.convs_all_levels.1.conv0.gn.weight, mask_feat_head.convs_all_levels.1.conv0.gn.bias, mask_feat_head.convs_all_levels.2.conv0.conv.weight, mask_feat_head.convs_all_levels.2.conv0.gn.weight, mask_feat_head.convs_all_levels.2.conv0.gn.bias, mask_feat_head.convs_all_levels.2.conv1.conv.weight, mask_feat_head.convs_all_levels.2.conv1.gn.weight, mask_feat_head.convs_all_levels.2.conv1.gn.bias, mask_feat_head.convs_all_levels.3.conv0.conv.weight, mask_feat_head.convs_all_levels.3.conv0.gn.weight, mask_feat_head.convs_all_levels.3.conv0.gn.bias, mask_feat_head.convs_all_levels.3.conv1.conv.weight, mask_feat_head.convs_all_levels.3.conv1.gn.weight, mask_feat_head.convs_all_levels.3.conv1.gn.bias, mask_feat_head.convs_all_levels.3.conv2.conv.weight, mask_feat_head.convs_all_levels.3.conv2.gn.weight, mask_feat_head.convs_all_levels.3.conv2.gn.bias, mask_feat_head.conv_pred.0.conv.weight, mask_feat_head.conv_pred.0.gn.weight, mask_feat_head.conv_pred.0.gn.bias, bbox_head.cate_convs.0.conv.weight, bbox_head.cate_convs.0.gn.weight, bbox_head.cate_convs.0.gn.bias, bbox_head.cate_convs.1.conv.weight, bbox_head.cate_convs.1.gn.weight, bbox_head.cate_convs.1.gn.bias, bbox_head.cate_convs.2.conv.weight, bbox_head.cate_convs.2.gn.weight, bbox_head.cate_convs.2.gn.bias, bbox_head.cate_convs.3.conv.weight, bbox_head.cate_convs.3.gn.weight, bbox_head.cate_convs.3.gn.bias, bbox_head.kernel_convs.0.conv.weight, bbox_head.kernel_convs.0.gn.weight, bbox_head.kernel_convs.0.gn.bias, bbox_head.kernel_convs.1.conv.weight, bbox_head.kernel_convs.1.gn.weight, bbox_head.kernel_convs.1.gn.bias, bbox_head.kernel_convs.2.conv.weight, bbox_head.kernel_convs.2.gn.weight, bbox_head.kernel_convs.2.gn.bias, bbox_head.kernel_convs.3.conv.weight, bbox_head.kernel_convs.3.gn.weight, bbox_head.kernel_convs.3.gn.bias, bbox_head.solo_cate.weight, bbox_head.solo_cate.bias, bbox_head.solo_kernel.weight, bbox_head.solo_kernel.bias
+
+missing keys in source state_dict: conv1.weight, bn1.weight, bn1.bias, bn1.running_mean, bn1.running_var, layer1.0.conv1.weight, layer1.0.bn1.weight, layer1.0.bn1.bias, layer1.0.bn1.running_mean, layer1.0.bn1.running_var, layer1.0.conv2.weight, layer1.0.bn2.weight, layer1.0.bn2.bias, layer1.0.bn2.running_mean, layer1.0.bn2.running_var, layer1.0.conv3.weight, layer1.0.bn3.weight, layer1.0.bn3.bias, layer1.0.bn3.running_mean, layer1.0.bn3.running_var, layer1.0.downsample.0.weight, layer1.0.downsample.1.weight, layer1.0.downsample.1.bias, layer1.0.downsample.1.running_mean, layer1.0.downsample.1.running_var, layer1.1.conv1.weight, layer1.1.bn1.weight, layer1.1.bn1.bias, layer1.1.bn1.running_mean, layer1.1.bn1.running_var, layer1.1.conv2.weight, layer1.1.bn2.weight, layer1.1.bn2.bias, layer1.1.bn2.running_mean, layer1.1.bn2.running_var, layer1.1.conv3.weight, layer1.1.bn3.weight, layer1.1.bn3.bias, layer1.1.bn3.running_mean, layer1.1.bn3.running_var, layer1.2.conv1.weight, layer1.2.bn1.weight, layer1.2.bn1.bias, layer1.2.bn1.running_mean, layer1.2.bn1.running_var, layer1.2.conv2.weight, layer1.2.bn2.weight, layer1.2.bn2.bias, layer1.2.bn2.running_mean, layer1.2.bn2.running_var, layer1.2.conv3.weight, layer1.2.bn3.weight, layer1.2.bn3.bias, layer1.2.bn3.running_mean, layer1.2.bn3.running_var, layer2.0.conv1.weight, layer2.0.bn1.weight, layer2.0.bn1.bias, layer2.0.bn1.running_mean, layer2.0.bn1.running_var, layer2.0.conv2.weight, layer2.0.bn2.weight, layer2.0.bn2.bias, layer2.0.bn2.running_mean, layer2.0.bn2.running_var, layer2.0.conv3.weight, layer2.0.bn3.weight, layer2.0.bn3.bias, layer2.0.bn3.running_mean, layer2.0.bn3.running_var, layer2.0.downsample.0.weight, layer2.0.downsample.1.weight, layer2.0.downsample.1.bias, layer2.0.downsample.1.running_mean, layer2.0.downsample.1.running_var, layer2.1.conv1.weight, layer2.1.bn1.weight, layer2.1.bn1.bias, layer2.1.bn1.running_mean, layer2.1.bn1.running_var, layer2.1.conv2.weight, layer2.1.bn2.weight, layer2.1.bn2.bias, layer2.1.bn2.running_mean, layer2.1.bn2.running_var, layer2.1.conv3.weight, layer2.1.bn3.weight, layer2.1.bn3.bias, layer2.1.bn3.running_mean, layer2.1.bn3.running_var, layer2.2.conv1.weight, layer2.2.bn1.weight, layer2.2.bn1.bias, layer2.2.bn1.running_mean, layer2.2.bn1.running_var, layer2.2.conv2.weight, layer2.2.bn2.weight, layer2.2.bn2.bias, layer2.2.bn2.running_mean, layer2.2.bn2.running_var, layer2.2.conv3.weight, layer2.2.bn3.weight, layer2.2.bn3.bias, layer2.2.bn3.running_mean, layer2.2.bn3.running_var, layer2.3.conv1.weight, layer2.3.bn1.weight, layer2.3.bn1.bias, layer2.3.bn1.running_mean, layer2.3.bn1.running_var, layer2.3.conv2.weight, layer2.3.bn2.weight, layer2.3.bn2.bias, layer2.3.bn2.running_mean, layer2.3.bn2.running_var, layer2.3.conv3.weight, layer2.3.bn3.weight, layer2.3.bn3.bias, layer2.3.bn3.running_mean, layer2.3.bn3.running_var, layer3.0.conv1.weight, layer3.0.bn1.weight, layer3.0.bn1.bias, layer3.0.bn1.running_mean, layer3.0.bn1.running_var, layer3.0.conv2.weight, layer3.0.bn2.weight, layer3.0.bn2.bias, layer3.0.bn2.running_mean, layer3.0.bn2.running_var, layer3.0.conv3.weight, layer3.0.bn3.weight, layer3.0.bn3.bias, layer3.0.bn3.running_mean, layer3.0.bn3.running_var, layer3.0.downsample.0.weight, layer3.0.downsample.1.weight, layer3.0.downsample.1.bias, layer3.0.downsample.1.running_mean, layer3.0.downsample.1.running_var, layer3.1.conv1.weight, layer3.1.bn1.weight, layer3.1.bn1.bias, layer3.1.bn1.running_mean, layer3.1.bn1.running_var, layer3.1.conv2.weight, layer3.1.bn2.weight, layer3.1.bn2.bias, layer3.1.bn2.running_mean, layer3.1.bn2.running_var, layer3.1.conv3.weight, layer3.1.bn3.weight, layer3.1.bn3.bias, layer3.1.bn3.running_mean, layer3.1.bn3.running_var, layer3.2.conv1.weight, layer3.2.bn1.weight, layer3.2.bn1.bias, layer3.2.bn1.running_mean, layer3.2.bn1.running_var, layer3.2.conv2.weight, layer3.2.bn2.weight, layer3.2.bn2.bias, layer3.2.bn2.running_mean, layer3.2.bn2.running_var, layer3.2.conv3.weight, layer3.2.bn3.weight, layer3.2.bn3.bias, layer3.2.bn3.running_mean, layer3.2.bn3.running_var, layer3.3.conv1.weight, layer3.3.bn1.weight, layer3.3.bn1.bias, layer3.3.bn1.running_mean, layer3.3.bn1.running_var, layer3.3.conv2.weight, layer3.3.bn2.weight, layer3.3.bn2.bias, layer3.3.bn2.running_mean, layer3.3.bn2.running_var, layer3.3.conv3.weight, layer3.3.bn3.weight, layer3.3.bn3.bias, layer3.3.bn3.running_mean, layer3.3.bn3.running_var, layer3.4.conv1.weight, layer3.4.bn1.weight, layer3.4.bn1.bias, layer3.4.bn1.running_mean, layer3.4.bn1.running_var, layer3.4.conv2.weight, layer3.4.bn2.weight, layer3.4.bn2.bias, layer3.4.bn2.running_mean, layer3.4.bn2.running_var, layer3.4.conv3.weight, layer3.4.bn3.weight, layer3.4.bn3.bias, layer3.4.bn3.running_mean, layer3.4.bn3.running_var, layer3.5.conv1.weight, layer3.5.bn1.weight, layer3.5.bn1.bias, layer3.5.bn1.running_mean, layer3.5.bn1.running_var, layer3.5.conv2.weight, layer3.5.bn2.weight, layer3.5.bn2.bias, layer3.5.bn2.running_mean, layer3.5.bn2.running_var, layer3.5.conv3.weight, layer3.5.bn3.weight, layer3.5.bn3.bias, layer3.5.bn3.running_mean, layer3.5.bn3.running_var, layer4.0.conv1.weight, layer4.0.bn1.weight, layer4.0.bn1.bias, layer4.0.bn1.running_mean, layer4.0.bn1.running_var, layer4.0.conv2.weight, layer4.0.bn2.weight, layer4.0.bn2.bias, layer4.0.bn2.running_mean, layer4.0.bn2.running_var, layer4.0.conv3.weight, layer4.0.bn3.weight, layer4.0.bn3.bias, layer4.0.bn3.running_mean, layer4.0.bn3.running_var, layer4.0.downsample.0.weight, layer4.0.downsample.1.weight, layer4.0.downsample.1.bias, layer4.0.downsample.1.running_mean, layer4.0.downsample.1.running_var, layer4.1.conv1.weight, layer4.1.bn1.weight, layer4.1.bn1.bias, layer4.1.bn1.running_mean, layer4.1.bn1.running_var, layer4.1.conv2.weight, layer4.1.bn2.weight, layer4.1.bn2.bias, layer4.1.bn2.running_mean, layer4.1.bn2.running_var, layer4.1.conv3.weight, layer4.1.bn3.weight, layer4.1.bn3.bias, layer4.1.bn3.running_mean, layer4.1.bn3.running_var, layer4.2.conv1.weight, layer4.2.bn1.weight, layer4.2.bn1.bias, layer4.2.bn1.running_mean, layer4.2.bn1.running_var, layer4.2.conv2.weight, layer4.2.bn2.weight, layer4.2.bn2.bias, layer4.2.bn2.running_mean, layer4.2.bn2.running_var, layer4.2.conv3.weight, layer4.2.bn3.weight, layer4.2.bn3.bias, layer4.2.bn3.running_mean, layer4.2.bn3.running_var
+
+2021-07-20 03:09:26,656 - mmdet - INFO - Start running, host: root@efe7fbebbac3, work_dir: /home/zq/work/SOLO/work_dirs/solov2_release_r50_fpn_8gpu_1x_0720
+2021-07-20 03:09:26,657 - mmdet - INFO - workflow: [('train', 1)], max: 50 epochs
+loading annotations into memory...
+Done (t=0.02s)
+creating index...
+index created!
+{'type': 'CocoDataset', 'ann_file': 'data/annotation/merge/merge_train_coco.json', 'img_prefix': 'data/road/train/', 'pipeline': [{'type': 'LoadImageFromFile'}, {'type': 'LoadAnnotations', 'with_bbox': True, 'with_mask': True}, {'type': 'Resize', 'img_scale': (640, 320), 'keep_ratio': True}, {'type': 'RandomFlip', 'flip_ratio': 0.5}, {'type': 'Normalize', 'mean': [123.675, 116.28, 103.53], 'std': [58.395, 57.12, 57.375], 'to_rgb': True}, {'type': 'Pad', 'size_divisor': 32}, {'type': 'DefaultFormatBundle'}, {'type': 'Collect', 'keys': ['img', 'gt_bboxes', 'gt_labels', 'gt_masks']}]}
+/opt/conda/lib/python3.6/site-packages/torch/nn/functional.py:2494: UserWarning: Default upsampling behavior when mode=bilinear is changed to align_corners=False since 0.4.0. Please specify align_corners=True if the old behavior is desired. See the documentation of nn.Upsample for details.
+  "See the documentation of nn.Upsample for details.".format(mode))
+2021-07-20 03:09:49,255 - mmdet - INFO - Epoch [1][50/673]	lr: 0.00107, eta: 4:13:04, time: 0.452, data_time: 0.008, memory: 1560, loss_ins: 0.7568, loss_cate: 0.5782, loss: 1.3350
+2021-07-20 03:10:11,390 - mmdet - INFO - Epoch [1][100/673]	lr: 0.00206, eta: 4:10:07, time: 0.443, data_time: 0.005, memory: 1560, loss_ins: 0.6105, loss_cate: 0.4127, loss: 1.0233
+2021-07-20 03:10:33,289 - mmdet - INFO - Epoch [1][150/673]	lr: 0.00305, eta: 4:08:00, time: 0.438, data_time: 0.005, memory: 1560, loss_ins: 0.6078, loss_cate: 0.7547, loss: 1.3625
+2021-07-20 03:10:52,644 - mmdet - INFO - Epoch [1][200/673]	lr: 0.00404, eta: 3:59:40, time: 0.387, data_time: 0.005, memory: 1560, loss_ins: 0.5195, loss_cate: 0.6079, loss: 1.1275
