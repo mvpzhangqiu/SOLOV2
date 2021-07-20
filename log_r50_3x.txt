@@ -172,3 +172,7 @@ index created!
 2021-07-20 03:11:19,669 - mmdet - INFO - Epoch [2][100/673]	lr: 0.01000, eta: 2:11:02, time: 0.452, data_time: 0.014, memory: 4310, loss_ins: 0.5889, loss_cate: 0.2787, loss: 0.8675
 2021-07-20 03:11:42,644 - mmdet - INFO - Epoch [2][150/673]	lr: 0.01000, eta: 2:13:42, time: 0.460, data_time: 0.014, memory: 4310, loss_ins: 0.6682, loss_cate: 0.2902, loss: 0.9583
 2021-07-20 03:12:05,522 - mmdet - INFO - Epoch [2][200/673]	lr: 0.01000, eta: 2:15:59, time: 0.458, data_time: 0.012, memory: 4310, loss_ins: 0.6831, loss_cate: 0.2645, loss: 0.9477
+2021-07-20 03:12:28,656 - mmdet - INFO - Epoch [2][250/673]	lr: 0.01000, eta: 2:18:04, time: 0.463, data_time: 0.014, memory: 4310, loss_ins: 0.5872, loss_cate: 0.2477, loss: 0.8349
+2021-07-20 03:12:51,632 - mmdet - INFO - Epoch [2][300/673]	lr: 0.01000, eta: 2:19:51, time: 0.460, data_time: 0.015, memory: 4310, loss_ins: 0.6357, loss_cate: 0.2817, loss: 0.9174
+2021-07-20 03:13:14,969 - mmdet - INFO - Epoch [2][350/673]	lr: 0.01000, eta: 2:21:33, time: 0.467, data_time: 0.014, memory: 4311, loss_ins: 0.7362, loss_cate: 0.3020, loss: 1.0382
+2021-07-20 03:13:37,915 - mmdet - INFO - Epoch [2][400/673]	lr: 0.01000, eta: 2:22:55, time: 0.459, data_time: 0.015, memory: 4311, loss_ins: 0.5990, loss_cate: 0.2765, loss: 0.8755

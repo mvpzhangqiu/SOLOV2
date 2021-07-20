@@ -127,3 +127,4 @@ work_dirs/
 
 # etc
 log*
+*.txt
