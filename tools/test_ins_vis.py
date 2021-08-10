@@ -1,3 +1,4 @@
+import re
 import argparse
 import os
 import os.path as osp
@@ -18,6 +19,7 @@ import cv2
 import numpy as np
 import matplotlib.cm as cm
 
+
 def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir):
     img_tensor = data['img'][0]
     img_metas = data['img_meta'][0].data[0]
@@ -31,7 +33,7 @@ def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir):
             continue
         h, w, _ = img_meta['img_shape']
         img_show = img[:h, :w, :]
-        
+
         seg_label = cur_result[0]
         seg_label = seg_label.cpu().numpy().astype(np.uint8)
         cate_label = cur_result[1]
@@ -59,16 +61,17 @@ def vis_seg(data, result, img_norm_cfg, data_id, colors, score_thr, save_dir):
         mask = np.zeros((h, w))
         for idx in range(num_mask):
             idx = -(idx+1)
-            cur_mask = seg_label[idx, :,:]
+            cur_mask = seg_label[idx, :, :]
             cur_mask = mmcv.imresize(cur_mask, (w, h))
             # 预测的置信度设置
             cur_mask = (cur_mask > 0.5).astype(np.uint8)
             if cur_mask.sum() == 0:
-               continue
+                continue
             color_mask = np.random.randint(
                 0, 256, (1, 3), dtype=np.uint8)
             cur_mask_bool = cur_mask.astype(np.bool)
-            seg_show[cur_mask_bool] = img_show[cur_mask_bool] * 0.5 + color_mask * 0.5
+            seg_show[cur_mask_bool] = img_show[cur_mask_bool] * \
+                0.5 + color_mask * 0.5
             mask += cur_mask
 
             cur_cate = cate_label[idx]
@@ -95,8 +98,9 @@ def single_gpu_test(model, data_loader, args, cfg=None, verbose=True):
     results = []
     dataset = data_loader.dataset
 
-    class_num = 1000 # ins
-    colors = [(np.random.random((1, 3)) * 255).tolist()[0] for i in range(class_num)]    
+    class_num = 1000  # ins
+    colors = [(np.random.random((1, 3)) * 255).tolist()[0]
+              for i in range(class_num)]
 
     prog_bar = mmcv.ProgressBar(len(dataset))
     for i, data in enumerate(data_loader):
@@ -104,9 +108,15 @@ def single_gpu_test(model, data_loader, args, cfg=None, verbose=True):
             seg_result = model(return_loss=False, rescale=True, **data)
             result = None
         results.append(result)
-
+        # try:
+        img_id = 'cnl' + re.findall(r'cnl(.+?).jpg',
+                                    str(data['img_meta'][0]))[0]
+        # except:
+        # import ipdb
+        # ipdb.set_trace()
         if verbose:
-            vis_seg(data, seg_result, cfg.img_norm_cfg, data_id=i, colors=colors, score_thr=args.score_thr, save_dir=args.save_dir)
+            vis_seg(data, seg_result, cfg.img_norm_cfg, data_id=img_id,
+                    colors=colors, score_thr=args.score_thr, save_dir=args.save_dir)
 
         batch_size = data['img'][0].size(0)
         for _ in range(batch_size):
@@ -195,7 +205,8 @@ def parse_args():
         choices=['proposal', 'proposal_fast', 'bbox', 'segm', 'keypoints'],
         help='eval types')
     parser.add_argument('--show', action='store_true', help='show results')
-    parser.add_argument('--score_thr', type=float, default=0.3, help='score threshold for visualization')
+    parser.add_argument('--score_thr', type=float, default=0.3,
+                        help='score threshold for visualization')
     parser.add_argument('--tmpdir', help='tmp dir for writing some results')
     parser.add_argument('--save_dir', help='dir for saveing visualized images')
     parser.add_argument(

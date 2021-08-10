@@ -124,6 +124,7 @@ data/annotation/
 data/bak/
 data/road/
 work_dirs/
+data/
 
 # etc
 log*

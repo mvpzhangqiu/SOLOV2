@@ -297,15 +297,9 @@ class SOLOv2Head(nn.Module):
         ins_ind_label_list = []
         grid_order_list = []
 
-        # l_scale = []
-        # for gt_area in gt_areas:
-        #     l_scale.append(int(gt_area))
-        #     # import ipdb
-        #     # ipdb.set_trace()
-        # print(l_scale)
-
         for (lower_bound, upper_bound), stride, num_grid \
                 in zip(self.scale_ranges, self.strides, self.seg_num_grids):
+
             hit_indices = ((gt_areas >= lower_bound) & (
                 gt_areas <= upper_bound)).nonzero().flatten()
             num_ins = len(hit_indices)
