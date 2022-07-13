@@ -14,6 +14,6 @@ RUN apt-get update && apt-get install -y libglib2.0-0 libsm6 libxrender-dev libx
 
 # Install SOLO
 RUN conda install cython -y && conda clean --all
-RUN git clone https://github.com:WXinlong/SOLO.git /SOLO
+RUN git clone https://github.com/WXinlong/SOLO.git /SOLO
 WORKDIR /SOLO
 RUN pip install --no-cache-dir -e .
